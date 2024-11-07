@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tablet Clock</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* CSS Styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #333;
+            color: #f5f5f5;
+        }
+
+        #clock {
+            font-size: 5rem;
+            font-weight: 200;
+        }
+
+        #weather {
+            font-size: 1.25rem;
+        }
+
+        .modal-content {
+            background-color: #444;
+        }
+
+        .settings-icon {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+        }
+
+        .settings-icon .btn {
+            font-size: 1.25rem;
+        }
+    </style>
+</head>
+<body class="bg-dark text-light">
+    <div class="container d-flex flex-column align-items-center justify-content-center vh-100">
+        <!-- Clock Display -->
+        <div id="clock" class="display-1 mb-3"></div>
+
+        <!-- Weather Display -->
+        <div id="weather" class="mb-3 text-center" style="display: none;"></div>
+    </div>
+
+    <!-- Small Settings Icon in the Bottom-Right Corner -->
+    <div class="settings-icon">
+        <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#settingsModal">
+            <i class="bi bi-gear-fill"></i>
+        </button>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="settingsModalLabel">Settings</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="settingsForm">
+                        <!-- Toggle Weather Widget -->
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="toggleWeather">
+                            <label class="form-check-label" for="toggleWeather">Show Weather</label>
+                        </div>
+
+                        <!-- City Selection -->
+                        <div class="my-3">
+                            <label for="citySelect" class="form-label">Select City</label>
+                            <select class="form-select" id="citySelect">
+                                <option value="Lisbon,38.7169,-9.1399">Lisbon</option>
+                                <option value="Porto,41.1579,-8.6291">Porto</option>
+                                <option value="Coimbra,40.2033,-8.4103">Coimbra</option>
+                                <option value="Faro,37.0194,-7.9304">Faro</option>
+                                <option value="Braga,41.5454,-8.4265">Braga</option>
+                                <option value="Aveiro,40.6405,-8.6538">Aveiro</option>
+                                <option value="Funchal,32.6669,-16.9241">Funchal</option>
+                            </select>
+                        </div>
+
+                        <!-- Background Color Selection -->
+                        <div class="my-3">
+                            <label for="backgroundSelect" class="form-label">Background</label>
+                            <select class="form-select" id="backgroundSelect">
+                                <option value="bg-dark">Dark</option>
+                                <option value="bg-light">Light</option>
+                                <option value="bg-primary">Blue</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="applySettings()">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // JavaScript Embedded
+
+        // Update clock every second
+        function updateClock() {
+            const clock = document.getElementById('clock');
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            clock.innerText = `${hours}:${minutes}:${seconds}`;
+        }
+        setInterval(updateClock, 1000);
+
+        // Apply settings from modal
+        function applySettings() {
+            const weather = document.getElementById('weather');
+            const showWeather = document.getElementById('toggleWeather').checked;
+            const selectedBg = document.getElementById('backgroundSelect').value;
+
+            // Get selected city coordinates
+            const cityData = document.getElementById('citySelect').value.split(',');
+            const city = cityData[0];
+            const latitude = cityData[1];
+            const longitude = cityData[2];
+
+            // Toggle weather widget
+            weather.style.display = showWeather ? 'block' : 'none';
+
+            // Update background
+            document.body.className = selectedBg;
+
+            // Load weather if needed
+            if (showWeather) updateWeather(city, latitude, longitude);
+        }
+
+        // Get weather data using Open-Meteo API
+        async function updateWeather(city, latitude, longitude) {
+            const weather = document.getElementById('weather');
+            try {
+                const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
+                const data = await response.json();
+                const { temperature, weathercode } = data.current_weather;
+
+                weather.innerHTML = `${city}: ${temperature}°C ${getWeatherEmoji(weathercode)} ${getWeatherDescription(weathercode)}`;
+            } catch (error) {
+                weather.innerText = 'Unable to load weather data';
+            }
+        }
+
+        // Map weather codes to descriptions and emojis
+        function getWeatherDescription(code) {
+            const descriptions = {
+                0: "Clear sky",
+                1: "Mainly clear",
+                2: "Partly cloudy",
+                3: "Overcast",
+                45: "Fog",
+                48: "Depositing rime fog",
+                61: "Rain showers",
+                63: "Heavy rain showers",
+                80: "Thunderstorm",
+            };
+            return descriptions[code] || "Unknown";
+        }
+
+        function getWeatherEmoji(code) {
+            const emojis = {
+                0: "☀️",
+                1: "🌤️",
+                2: "⛅",
+                3: "☁️",
+                45: "🌫️",
+                48: "🌫️",
+                61: "🌧️",
+                63: "🌦️",
+                80: "⛈️",
+            };
+            return emojis[code] || "";
+        }
+    </script>
+</body>
+</html>
